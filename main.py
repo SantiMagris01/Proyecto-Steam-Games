@@ -118,12 +118,14 @@ def metascore(anio: str):
 
 
 
-# Convertir la columna 'genres' en columnas binarias usando MultiLabelBinarizer
-mlb = MultiLabelBinarizer()
-genres_encoded = pd.DataFrame(mlb.fit_transform(df['genres']), columns=mlb.classes_, index=df.index)
+# Crear una lista de todos los géneros únicos presentes en las listas de la columna 'genres'
+unique_genres = set()
+for genre_list in df['genres']:
+    unique_genres.update(genre_list)
 
-# Concatenar las columnas binarias con el DataFrame original
-df = pd.concat([df, genres_encoded], axis=1)
+# Crear columnas binarias para cada género único
+for genre in unique_genres:
+    df[genre] = df['genres'].apply(lambda x: 1 if genre in x else 0)
 
 # Definir las características y el objetivo
 X = df.drop(["app_name", "release_date", "price", "genres"], axis=1)
@@ -145,11 +147,8 @@ def prediccion(genero: list, earlyaccess: bool, metascore: int):
     })
 
     # Convertir el género ingresado en columnas binarias
-    input_genre = mlb.transform([genero])  # Usar el mismo MultiLabelBinarizer
-    input_genre_df = pd.DataFrame(input_genre, columns=mlb.classes_)
-
-    # Concatenar las características de entrada
-    input_data = pd.concat([input_data, input_genre_df], axis=1)
+    input_genre = [1 if genre in genero else 0 for genre in unique_genres]
+    input_data = pd.concat([input_data, pd.DataFrame([input_genre], columns=unique_genres)], axis=1)
 
     # Hacer la predicción
     predicted_price = model.predict(input_data)
