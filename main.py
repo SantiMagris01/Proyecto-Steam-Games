@@ -130,12 +130,16 @@ for genre_list in df['genres']:
 for genre in unique_genres:
     df[genre] = df['genres'].apply(lambda x: 1 if genre in x else 0)
 
-# Definir las características y el objetivo
-X = df.drop(["app_name", "release_date", "price", "genres"], axis=1)
-y = df["price"]
+unique_publishers = set()
+for publisher_list in df['publisher']:
+    unique_publishers.update(publisher_list)
 
-# Restaurar NaN en la columna 'genres' si es necesario
-df['genres'] = df['genres'].replace("", np.nan)
+for publisher in unique_publishers:
+    df[publisher] = df['publisher'].apply(lambda x: 1 if publisher in x else 0)
+
+# Definir las características y el objetivo
+X = df.drop(["app_name", "release_date", "price", "genres", "publisher"], axis=1)
+y = df["price"]
 
 # Dividir el conjunto de datos en entrenamiento y prueba
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -155,6 +159,10 @@ def prediccion(genero: list, earlyaccess: bool, metascore: int):
     # Convertir el género ingresado en columnas binarias
     input_genre = [1 if genre in genero else 0 for genre in unique_genres]
     input_data = pd.concat([input_data, pd.DataFrame([input_genre], columns=unique_genres)], axis=1)
+
+    # Convertir la editorial ingresada en columnas binarias
+    input_publisher = [1 if publisher in genero else 0 for publisher in unique_publishers]
+    input_data = pd.concat([input_data, pd.DataFrame([input_publisher], columns=unique_publishers)], axis=1)
 
     # Hacer la predicción
     predicted_price = model.predict(input_data)
