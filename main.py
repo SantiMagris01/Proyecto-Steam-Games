@@ -4,7 +4,7 @@ import ast
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
-
+from sklearn.preprocessing import MultiLabelBinarizer
 
 
 app = FastAPI()
@@ -118,11 +118,15 @@ def metascore(anio: str):
 
 
 
-# Feature Engineering: Convertir columnas categóricas en variables dummy
-df = pd.get_dummies(df, columns=["publisher", "genres", "specs", "developer"])
+# Convertir la columna 'genres' en columnas binarias usando MultiLabelBinarizer
+mlb = MultiLabelBinarizer()
+genres_encoded = pd.DataFrame(mlb.fit_transform(df['genres']), columns=mlb.classes_, index=df.index)
+
+# Concatenar las columnas binarias con el DataFrame original
+df = pd.concat([df, genres_encoded], axis=1)
 
 # Definir las características y el objetivo
-X = df.drop(["app_name", "release_date", "price"], axis=1)
+X = df.drop(["app_name", "release_date", "price", "genres"], axis=1)
 y = df["price"]
 
 # Dividir el conjunto de datos en entrenamiento y prueba
@@ -133,16 +137,19 @@ model = LinearRegression()
 model.fit(X_train, y_train)
 
 @app.post("/prediccion/")
-def prediccion(genero: str, earlyaccess: bool, metascore: int):
+def prediccion(genero: list, earlyaccess: bool, metascore: int):
     # Preprocesar la entrada para hacer la predicción
     input_data = pd.DataFrame({
         "early_access": [earlyaccess],
         "metascore": [metascore]
     })
 
-    # Crear columnas dummy para el género ingresado
-    for genre in df["genres"].unique():
-        input_data[f"genres_{genre}"] = [1] if genre == genero else [0]
+    # Convertir el género ingresado en columnas binarias
+    input_genre = mlb.transform([genero])  # Usar el mismo MultiLabelBinarizer
+    input_genre_df = pd.DataFrame(input_genre, columns=mlb.classes_)
+
+    # Concatenar las características de entrada
+    input_data = pd.concat([input_data, input_genre_df], axis=1)
 
     # Hacer la predicción
     predicted_price = model.predict(input_data)
