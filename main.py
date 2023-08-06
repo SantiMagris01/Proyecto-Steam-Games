@@ -132,10 +132,11 @@ for genre in unique_genres:
 
 unique_publishers = set()
 for publisher_list in df['publisher']:
-    unique_publishers.update(publisher_list)
+    if isinstance(publisher_list, list):  # Comprobar si el valor es una lista
+        unique_publishers.update(publisher_list)
 
 for publisher in unique_publishers:
-    df[publisher] = df['publisher'].apply(lambda x: 1 if publisher in x else 0)
+    df[publisher] = df['publisher'].apply(lambda x: 1 if isinstance(x, list) and publisher in x else 0)
 
 # Definir las características y el objetivo
 X = df.drop(["app_name", "release_date", "price", "genres", "publisher"], axis=1)
