@@ -5,7 +5,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MultiLabelBinarizer
-
+import numpy as  np
 
 app = FastAPI()
 
@@ -118,6 +118,9 @@ def metascore(anio: str):
 
 
 
+# Manejar los valores NaN en la columna 'genres'
+df['genres'].fillna("", inplace=True)  # Rellenar NaN con cadena vacía
+
 # Crear una lista de todos los géneros únicos presentes en las listas de la columna 'genres'
 unique_genres = set()
 for genre_list in df['genres']:
@@ -130,6 +133,9 @@ for genre in unique_genres:
 # Definir las características y el objetivo
 X = df.drop(["app_name", "release_date", "price", "genres"], axis=1)
 y = df["price"]
+
+# Restaurar NaN en la columna 'genres' si es necesario
+df['genres'] = df['genres'].replace("", np.nan)
 
 # Dividir el conjunto de datos en entrenamiento y prueba
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
