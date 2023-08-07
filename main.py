@@ -1,5 +1,5 @@
 import pandas as pd
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 import ast
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
@@ -145,8 +145,13 @@ y_train = train_df['price']
 model = LinearRegression()
 model.fit(X_train, y_train)
 
-@app.post("/prediccion/")
-def obtener_prediccion(genero: list, earlyaccess: bool, release_year: int, developer: str):
+@app.get("/prediccion/")
+def obtener_prediccion(
+    genero: list = Query(..., description="Lista de géneros", example=["Free to Play", "Indie"]),
+    earlyaccess: bool = Query(..., description="Acceso temprano"),
+    release_year: int = Query(..., description="Año de lanzamiento"),
+    developer: str = Query(..., description="Desarrollador")
+):
     # Realiza la predicción
     genre_encoded = mlb.transform([genero])
     developer_encoded = le.transform([developer])
