@@ -15,23 +15,45 @@ def read_root():
     return {'message' : 'API para consultar datos de Juegos'}
 
 
-@app.get('/genero/{anio}')
+@app.get("/genero/{anio}")
 def genero(anio: str):
-    # Limpia los valores faltantes en la columna 'release_date'
-    df_cleaned = df.dropna(subset=['release_year'])
-
-    # Elimina las filas con valores 'nan' en la columna 'genres'
-    df_cleaned = df_cleaned.dropna(subset=['genres'])
-
-    # Filtra los juegos del año ingresado
-    juegos_año = df_cleaned[df_cleaned['release_year']]
-
-    if juegos_año.empty:
-        return {"message": f"No se encontraron juegos para el año {anio}"}
-
+    # Filtrar los datos por el año especificado
+    filtered_data = df[df['release_year'] == int(anio)]
+    
     # Contar los géneros más ofrecidos en el año especificado
     generos_count = {}
-    for genres in juegos_año['genres']:
+    for genres in filtered_data['genres']:
+        genre_list = ast.literal_eval(genres)  # Convierte la cadena de texto en lista
+        for genre in genre_list:
+            generos_count[genre] = generos_count.get(genre, 0) + 1
+
+    # Ordenar los géneros por frecuencia (más ofrecidos primero)
+    generos_ordenados = sorted(generos_count.items(), key=lambda x: x[1], reverse=True)
+
+    # Tomar solo los 5 géneros más ofrecidos
+    top_5_generos = [genero for genero, _ in generos_ordenados[:5]]
+
+    return {'anio' : anio, 'top generos' : top_5_generos}
+
+@app.get('/juegos/{anio}')
+def juegos(anio: int):
+    # Filtrar los datos por el año especificado
+    filtered_data = df[df['release_year'] == anio]
+
+    # Obtener la lista de juegos lanzados en el año
+    juegos_lanzados = filtered_data['app_name'].tolist()
+
+    return {'anio' : anio, 'Juegos Lanzados' : juegos_lanzados}
+
+
+@app.get('/specs/{anio}')
+def specs(anio: str):
+    # Filtrar los datos por el año especificado
+    filtered_data = df[df['release_year'] == int(anio)]
+    
+    # Contar los géneros más ofrecidos en el año especificado
+    generos_count = {}
+    for genres in filtered_data['genres']:
         genre_list = ast.literal_eval(genres)  # Convierte la cadena de texto en lista
         for genre in genre_list:
             generos_count[genre] = generos_count.get(genre, 0) + 1
@@ -45,64 +67,31 @@ def genero(anio: str):
     return {'anio' : anio, 'top generos' : top_5_generos}
 
 
-@app.get('/juegos/{anio}')
-def juegos(anio: str):
-    # Filtra los juegos del año ingresado
-    juegos_año = df[df['release_year'].str.startswith(anio, na=False)]['app_name'].tolist()
-
-    if not juegos_año:
-        return {"message": f"No se encontraron juegos para el año {anio}"}
-
-    return {'anio' : anio, 'Juegos Lanzados' : juegos_año}
-
-
-@app.get('/specs/{anio}')
-def specs(anio: str):
-    df_cleaned = df.dropna(subset=['release_year'])
-
-    df_cleaned = df_cleaned.dropna(subset=['specs'])
-
-    juegos_año = df_cleaned[df_cleaned['release_year'].str.startswith(anio)]
-
-    if juegos_año.empty:
-        return {"message": f"No se encontraron juegos para el año {anio}"}
-
-    specs_count = {}
-    for specs in juegos_año['specs']:
-        specs_list = ast.literal_eval(specs)  
-        for specs in specs_list:
-            specs_count[specs] = specs_count.get(specs, 0) + 1
-
-    specs_ordenados = sorted(specs_count.items(), key=lambda x: x[1], reverse=True)
-
-    top_5_specs = [genero for genero, _ in specs_ordenados[:5]]
-
-    return {'Anio' : anio, 'Top specs' : top_5_specs}
-
-
 @app.get("/earlyaccess/{anio}")
-def earlyacces(anio: str):
-    juegos_early = df[(df['release_year'].str.startswith(anio, na=False)) & (df['early_access'] == True)]
+def earlyacces(anio: int):
+    # Filtrar los datos por el año especificado y early access
+    filtered_data = df[(df['release_year'] == anio) & (df['early_access'] == True)]
 
-    cantidad_juegos = len(juegos_early)
+    # Contar la cantidad de juegos con early access
+    cantidad_early_access = len(filtered_data)
 
-    return {"cantidad de juegos": cantidad_juegos}
+    return {"año": anio, "cantidad_early_access": cantidad_early_access}
 
 
 @app.get("/sentiment/{anio}")
 def sentiment(anio: str):
-    registros_año = df[df['release_year'].str.startswith(anio, na=False)]
+    filtered_data = df[df['release_year'] == int(anio)]
 
-    sentiment_counts = registros_año['sentiment'].value_counts().to_dict()
+    sentiment_counts = filtered_data['sentiment'].value_counts().to_dict()
 
     return sentiment_counts
 
 
 @app.get("/metascore/{anio}")
 def metascore(anio: str):
-    registros_año = df[df['release_year'].str.startswith(anio, na=False)]
+    filtered_data = df[df['release_year'] == int(anio)]
 
-    registros_con_metascore = registros_año.dropna(subset=['metascore'])
+    registros_con_metascore = filtered_data.dropna(subset=['metascore'])
 
     if registros_con_metascore.empty:
         return {"message": "No hay registros con metascore para el año especificado"}
