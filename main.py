@@ -18,13 +18,13 @@ def read_root():
 @app.get('/genero/{anio}')
 def genero(anio: str):
     # Limpia los valores faltantes en la columna 'release_date'
-    df_cleaned = df.dropna(subset=['release_date'])
+    df_cleaned = df.dropna(subset=['release_year'])
 
     # Elimina las filas con valores 'nan' en la columna 'genres'
     df_cleaned = df_cleaned.dropna(subset=['genres'])
 
     # Filtra los juegos del año ingresado
-    juegos_año = df_cleaned[df_cleaned['release_date'].str.startswith(anio)]
+    juegos_año = df_cleaned[df_cleaned['release_year'].str.startswith(anio)]
 
     if juegos_año.empty:
         return {"message": f"No se encontraron juegos para el año {anio}"}
@@ -48,7 +48,7 @@ def genero(anio: str):
 @app.get('/juegos/{anio}')
 def juegos(anio: str):
     # Filtra los juegos del año ingresado
-    juegos_año = df[df['release_date'].str.startswith(anio, na=False)]['app_name'].tolist()
+    juegos_año = df[df['release_year'].str.startswith(anio, na=False)]['app_name'].tolist()
 
     if not juegos_año:
         return {"message": f"No se encontraron juegos para el año {anio}"}
@@ -58,11 +58,11 @@ def juegos(anio: str):
 
 @app.get('/specs/{anio}')
 def specs(anio: str):
-    df_cleaned = df.dropna(subset=['release_date'])
+    df_cleaned = df.dropna(subset=['release_year'])
 
     df_cleaned = df_cleaned.dropna(subset=['specs'])
 
-    juegos_año = df_cleaned[df_cleaned['release_date'].str.startswith(anio)]
+    juegos_año = df_cleaned[df_cleaned['release_year'].str.startswith(anio)]
 
     if juegos_año.empty:
         return {"message": f"No se encontraron juegos para el año {anio}"}
@@ -82,7 +82,7 @@ def specs(anio: str):
 
 @app.get("/earlyaccess/{anio}")
 def earlyacces(anio: str):
-    juegos_early = df[(df['release_date'].str.startswith(anio, na=False)) & (df['early_access'] == True)]
+    juegos_early = df[(df['release_year'].str.startswith(anio, na=False)) & (df['early_access'] == True)]
 
     cantidad_juegos = len(juegos_early)
 
@@ -91,7 +91,7 @@ def earlyacces(anio: str):
 
 @app.get("/sentiment/{anio}")
 def sentiment(anio: str):
-    registros_año = df[df['release_date'].str.startswith(anio, na=False)]
+    registros_año = df[df['release_year'].str.startswith(anio, na=False)]
 
     sentiment_counts = registros_año['sentiment'].value_counts().to_dict()
 
@@ -100,7 +100,7 @@ def sentiment(anio: str):
 
 @app.get("/metascore/{anio}")
 def metascore(anio: str):
-    registros_año = df[df['release_date'].str.startswith(anio, na=False)]
+    registros_año = df[df['release_year'].str.startswith(anio, na=False)]
 
     registros_con_metascore = registros_año.dropna(subset=['metascore'])
 
