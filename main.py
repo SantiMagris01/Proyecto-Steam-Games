@@ -4,8 +4,7 @@ import ast
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
-from sklearn.preprocessing import MultiLabelBinarizer
-import numpy as  np
+from sklearn.preprocessing import MultiLabelBinarizer, LabelEncoder
 
 app = FastAPI()
 
@@ -117,59 +116,47 @@ def metascore(anio: str):
     return top_dict
 
 
+df = df.dropna(subset=['release_date'])
+df['price'] = pd.to_numeric(df['price'], errors='coerce')
+df = df.dropna(subset=['price'])
+df = df.dropna(subset=['genres'])
+df['release_date'] = pd.to_datetime(df['release_date'])
+df['release_year'] = df['release_date'].dt.year
+df = df.drop(columns=['release_date'])
+df = df.dropna(subset=['developer'])
 
-# Manejar los valores NaN en la columna 'genres'
-df['genres'].fillna("", inplace=True)  # Rellenar NaN con cadena vacía
+# Realiza el One-Hot Encoding para la columna 'genres'
+mlb = MultiLabelBinarizer()
+genre_encoded = pd.DataFrame(mlb.fit_transform(df['genres']), columns=mlb.classes_, index=df.index)
 
-# Crear una lista de todos los géneros únicos presentes en las listas de la columna 'genres'
-unique_genres = set()
-for genre_list in df['genres']:
-    unique_genres.update(genre_list)
+# Codifica la columna 'developer' usando Label Encoding
+le = LabelEncoder()
+df['developer_encoded'] = le.fit_transform(df['developer'])
 
-# Crear columnas binarias para cada género único
-for genre in unique_genres:
-    df[genre] = df['genres'].apply(lambda x: 1 if genre in x else 0)
+# Combina el DataFrame con el One-Hot Encoding y la columna 'developer' codificada
+df_encoded = pd.concat([df, genre_encoded], axis=1)
 
-unique_publishers = set()
-for publisher_list in df['publisher']:
-    if isinstance(publisher_list, list):  # Comprobar si el valor es una lista
-        unique_publishers.update(publisher_list)
+# Divide tus datos en conjuntos de entrenamiento y prueba
+train_df, test_df = train_test_split(df_encoded, test_size=0.2, random_state=42)
 
-for publisher in unique_publishers:
-    df[publisher] = df['publisher'].apply(lambda x: 1 if isinstance(x, list) and publisher in x else 0)
-
-# Definir las características y el objetivo
-X = df.drop(["app_name", "release_date", "price", "genres", "publisher"], axis=1)
-y = df["price"]
-
-# Dividir el conjunto de datos en entrenamiento y prueba
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# Entrenar un modelo de regresión lineal
+# Entrena un modelo de regresión
+X_train = train_df[['early_access', 'release_year', 'developer_encoded'] + mlb.classes_.tolist()]
+y_train = train_df['price']
 model = LinearRegression()
 model.fit(X_train, y_train)
 
 @app.post("/prediccion/")
-def prediccion(genero: list, earlyaccess: bool, metascore: int):
-    # Preprocesar la entrada para hacer la predicción
-    input_data = pd.DataFrame({
-        "early_access": [earlyaccess],
-        "metascore": [metascore]
-    })
+def obtener_prediccion(genero: list, earlyaccess: bool, release_year: int, developer: str):
+    # Realiza la predicción
+    genre_encoded = mlb.transform([genero])
+    developer_encoded = le.transform([developer])
+    X_pred = [[earlyaccess, release_year, developer_encoded[0]] + genre_encoded.tolist()[0]]
+    precio_predicho = model.predict(X_pred)[0]
 
-    # Convertir el género ingresado en columnas binarias
-    input_genre = [1 if genre in genero else 0 for genre in unique_genres]
-    input_data = pd.concat([input_data, pd.DataFrame([input_genre], columns=unique_genres)], axis=1)
-
-    # Convertir la editorial ingresada en columnas binarias
-    input_publisher = [1 if publisher in genero else 0 for publisher in unique_publishers]
-    input_data = pd.concat([input_data, pd.DataFrame([input_publisher], columns=unique_publishers)], axis=1)
-
-    # Hacer la predicción
-    predicted_price = model.predict(input_data)
-
-    # Calcular RMSE en el conjunto de prueba
+    # Calcula el RMSE en el conjunto de prueba
+    X_test = test_df[['early_access', 'release_year', 'developer_encoded'] + mlb.classes_.tolist()]
+    y_test = test_df['price']
     y_pred = model.predict(X_test)
     rmse = mean_squared_error(y_test, y_pred, squared=False)
 
-    return {"predicted_price": predicted_price[0], "rmse": rmse}
+    return {"precio_predicho": precio_predicho, "rmse": rmse}
