@@ -24,7 +24,7 @@ def genero(anio: str):
     df_cleaned = df_cleaned.dropna(subset=['genres'])
 
     # Filtra los juegos del año ingresado
-    juegos_año = df_cleaned[df_cleaned['release_year'].str.startswith(anio)]
+    juegos_año = df_cleaned[df_cleaned['release_year']]
 
     if juegos_año.empty:
         return {"message": f"No se encontraron juegos para el año {anio}"}
