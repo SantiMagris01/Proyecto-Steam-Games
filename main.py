@@ -131,6 +131,8 @@ train_df, test_df = train_test_split(df_encoded, test_size=0.2, random_state=42)
 # Entrena un modelo de regresión
 X_train = train_df[['release_year', 'developer_encoded'] + mlb.classes_.tolist()]
 y_train = train_df['price']
+# Establecer los nombres de las características para el modelo XGBoost
+feature_names = X_train.columns.tolist()
 model = XGBRegressor(random_state=42)
 model.fit(X_train, y_train)
 
