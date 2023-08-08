@@ -2,9 +2,9 @@ import pandas as pd
 from fastapi import FastAPI, Query
 import ast
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MultiLabelBinarizer, LabelEncoder
+from xgboost import XGBRegressor
 
 app = FastAPI()
 
@@ -131,7 +131,7 @@ train_df, test_df = train_test_split(df_encoded, test_size=0.2, random_state=42)
 # Entrena un modelo de regresión
 X_train = train_df[['release_year', 'developer_encoded'] + mlb.classes_.tolist()]
 y_train = train_df['price']
-model = LinearRegression()
+model = XGBRegressor(random_state=42)
 model.fit(X_train, y_train)
 
 @app.get("/prediccion/")
