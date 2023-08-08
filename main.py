@@ -136,7 +136,7 @@ model.fit(X_train, y_train)
 
 @app.get("/prediccion/")
 def obtener_prediccion(
-    genero: list = Query(..., description="Lista de géneros", example=["Free to Play", "Indie"]),
+    genero: list = Query(..., description="Lista de géneros", example=["Action", "Indie"]),
     earlyaccess: bool = Query(..., description="Acceso temprano"),
     release_year: int = Query(..., description="Año de lanzamiento"),
     developer: str = Query(..., description="Desarrollador")
