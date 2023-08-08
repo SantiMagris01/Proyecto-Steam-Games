@@ -4,7 +4,7 @@ import ast
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MultiLabelBinarizer, LabelEncoder
-from xgboost import XGBRegressor
+from sklearn.linear_model import Ridge
 
 app = FastAPI()
 
@@ -128,28 +128,28 @@ df_encoded = pd.concat([df, genre_encoded], axis=1)
 # Divide tus datos en conjuntos de entrenamiento y prueba
 train_df, test_df = train_test_split(df_encoded, test_size=0.2, random_state=42)
 
-# Entrena un modelo de regresión
-X_train = train_df[['release_year', 'developer_encoded'] + mlb.classes_.tolist()]
+# Entrena un modelo de Regresión Ridge
+X_train = train_df[['early_access', 'release_year', 'developer_encoded'] + mlb.classes_.tolist()]
 y_train = train_df['price']
-# Establecer los nombres de las características para el modelo XGBoost
-feature_names = X_train.columns.tolist()
-model = XGBRegressor(random_state=42)
+
+alpha = 1.0  # Parámetro de regularización (ajustar según sea necesario)
+model = Ridge(alpha=alpha)
 model.fit(X_train, y_train)
 
-@app.get("/prediccion/")
 def obtener_prediccion(
-    genero: list = Query(..., description="Lista de géneros", example=["Action", "Indie"]),
+    genero: list = Query(..., description="Lista de géneros", example=["Free to Play", "Indie"]),
+    earlyaccess: bool = Query(..., description="Acceso temprano"),
     release_year: int = Query(..., description="Año de lanzamiento"),
     developer: str = Query(..., description="Desarrollador")
 ):
     # Realiza la predicción
     genre_encoded = mlb.transform([genero])
     developer_encoded = le.transform([developer])
-    X_pred = [[release_year, developer_encoded[0]] + genre_encoded.tolist()[0]]
+    X_pred = [[earlyaccess, release_year, developer_encoded[0]] + genre_encoded.tolist()[0]]
     precio_predicho = model.predict(X_pred)[0]
 
     # Calcula el RMSE en el conjunto de prueba
-    X_test = test_df[['release_year', 'developer_encoded'] + mlb.classes_.tolist()]
+    X_test = test_df[['early_access', 'release_year', 'developer_encoded'] + mlb.classes_.tolist()]
     y_test = test_df['price']
     y_pred = model.predict(X_test)
     rmse = mean_squared_error(y_test, y_pred, squared=False)
